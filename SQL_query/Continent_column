@@ -1,0 +1,12 @@
+SELECT 
+  *,
+  CASE 
+    WHEN country_code IN ('LB', 'KR', 'AE', 'TW', 'BH', 'KW', 'QA', 'RS', 'ID', 'SG', 'MY', 'SA', 'JO', 'JP', 'TH', 'TR', 'CN', 'MN', 'UZ', 'VN', 'NP', 'LK', 'KZ', 'AM', 'BY', 'CY', 'GE', 'MT', 'KG', 'AZ', 'MO', 'TJ', 'KH', 'IR', 'MM', 'BT', 'SY', 'AF', 'PS', 'TL', 'IO', 'YE', 'IO') THEN 'Asia'
+    WHEN country_code IN ('FR', 'GB', 'AT', 'DE', 'HU', 'LT', 'ME', 'NL', 'IT', 'LV', 'DK', 'FI', 'ES', 'NO', 'CZ', 'PT', 'CH', 'MD', 'LU', 'GR', 'SE', 'MC', 'RO', 'SI', 'BA', 'GI', 'IS', 'IE', 'BE', 'BG', 'EE', 'PL', 'RU', 'SK', 'AL', 'XK', 'SM', 'VA', 'JE', 'FO', 'IM', 'AX', 'SJ') THEN 'Europe'
+    WHEN country_code IN ('US', 'MX', 'CA', 'GT', 'CR', 'SV', 'PA', 'DO', 'HN', 'PR', 'TT', 'MQ', 'DM', 'KY', 'NI', 'BZ', 'BS', 'GL', 'AG', 'KN', 'VC', 'AI', 'BB', 'GD', 'MS', 'CU') THEN 'North America'
+    WHEN country_code IN ('BR', 'AR', 'CL', 'CO', 'EC', 'PY', 'UY', 'VE', 'PE', 'GF', 'GY', 'SR') THEN 'South America'
+    WHEN country_code IN ('AU', 'NZ', 'FJ', 'GU', 'AS', 'TO', 'PF', 'NR', 'TV', 'VU', 'UM', 'FM', 'NC', 'MH', 'WS', 'SB', 'TK', 'CX', 'NF', 'CK') THEN 'Oceania'
+    WHEN country_code IN ('ZM', 'TN', 'ZA', 'MA', 'KE', 'NA', 'RE', 'SN', 'MG', 'MU', 'UG', 'LY', 'CG', 'ET', 'MZ', 'AO', 'RW', 'ZW', 'NG', 'TZ', 'BJ', 'CI', 'GH', 'BW', 'LS', 'DJ', 'SD', 'MR', 'SO', 'CD', 'SL', 'TG', 'CV', 'ML', 'ST', 'KM', 'GM', 'ER', 'BI', 'GW', 'GA', 'SS', 'LY', 'EH', 'SC', 'YT') THEN 'Africa'
+    ELSE 'Unknown'
+  END AS continent
+FROM `probable-maker-420409.eddy.master_union_def`

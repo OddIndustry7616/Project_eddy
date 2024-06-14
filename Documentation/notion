@@ -1,0 +1,631 @@
+Documentation
+
+Le dataset est composé par les colonnes: 
+
+artist_id : identifiant unique pour l’artiste
+
+id : identificant unique event
+
+country_code: code pays
+
+channel_slug: source de revenue
+
+retailer : plateforme DSP ou physique
+
+sellable_type : track / release / video / merchandising
+
+sellable_id : code unique pour chaque item
+
+period : date pour le paiement
+
+total : aggregation net amount (sales)
+
+Nous allons calculer les KPI suivants:
+
+**Total Sales**
+
+**Sales by channel slug**
+
+**Sales by country**
+
+**Sales by type**
+
+**Sales by item**
+
+**Payments Timeline**
+
+**Sales By Retailer**
+
+Dans un deuxième temp
+
+**Consumption** : Aggregation de ventes DSP et Physical
+
+**ROI** : Retour d’investissement à condition d’obtenir les chiffres du budget marketing
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+**Analyse descriptive pour 2 profils de la database Eddy**
+
+Artist 102858
+
+Artist 148199
+
+Transformation
+
+Exploration de la donnée
+
+country_code ‘
+
+15419/world’ il s’agit d’une geozone et non pas un pays. Suite à un échange avec Eddy nous decidons effacer ces lignes compte tenu de son faible impact financier (2.7 USD)
+
+period
+
+FORMAT_TIMESTAMP('%Y-%m',period) afin d’obtenir un format date coherent
+
+Querys
+
+Transformation appliqué pour artiste 148199
+
+```sql
+WITH subquery AS (
+  SELECT 
+    *
+  FROM 
+    `probable-maker-420409.eddy.master148199`
+  WHERE 
+    country_code != '15419/world' #we select all that do not contain 15419/world
+)
+
+SELECT 
+  artist_id,
+  id,
+  country_code,
+  channel_slug,
+  retailer,
+  sellable_type,
+  sellable_id,
+  period_start_at AS period,
+  net_received_amount AS Total,
+  FORMAT_TIMESTAMP('%Y-%m',period_start_at) as year_month #add column to have year-month
+FROM 
+  subquery
+```
+
+Transformation appliqué pour Artiste 102858
+
+```sql
+SELECT 
+  artist_id,
+  id,
+  country_code,
+  channel_slug,
+  retailer,
+  sellable_type,
+  sellable_id,
+  period,
+  Total,
+  FORMAT_TIMESTAMP('%Y-%m',period) as year_month #add column to have year-month
+FROM `probable-maker-420409.eddy.master1` 
+```
+
+Union des artiste 148199 / 102858
+
+```sql
+SELECT *
+FROM `probable-maker-420409.eddy.102858`
+
+UNION ALL
+SELECT *
+FROM `probable-maker-420409.eddy.148199`
+```
+
+Transformation appliqué pour Artiste 22171
+
+```sql
+WITH subquery AS (
+  SELECT 
+    *,
+    GENERATE_UUID() AS the_album_project  # Adding a unique code for each row
+  FROM 
+    `probable-maker-420409.eddy.sample_data` 
+  WHERE 
+    country_code IS NOT NULL 
+)
+
+SELECT 
+  artist_id,
+  sale_id AS id,
+  country_code,
+  channel_slug,
+  retailer,
+  sellable_type,
+  sellable_id,
+  period_start_at AS period,
+  net_received_amount AS Total,
+  FORMAT_TIMESTAMP('%Y-%m', period_start_at) AS year_month,
+  the_album_project  # Including the new unique code column
+FROM 
+  subquery
+
+```
+
+```sql
+SELECT * ,
+  CASE 
+    WHEN artist_id = 22171 THEN 'ALB22171PROJ1'
+    WHEN artist_id = 148199 THEN 'ALB148199PROJ2'
+    WHEN artist_id = 102858 THEN 'ALB102858PROJ3'
+    ELSE 'UNKNOWN'
+  END AS the_album_project
+FROM
+`probable-maker-420409.eddy.master_union_3_artists` 
+```
+
+Transformation Marleting Spend
+
+```
+SELECT 
+Date as date
+,Marketing_Spend_USD
+,the_album_project
+,FORMAT_TIMESTAMP('%Y-%m',Date) as year_month
+FROM `probable-maker-420409.eddy.marketing22171`;
+
+```
+
+Machine Learning
+
+Pas de streaming en Afrique Central 
+
+Niger / Tchad / Soudan du Nord / Republique Centrafricaine
+
+Notre artiste se penche sur la question, il est inspiré par les sonorités africaines et decide d’incorporer 
+
+https://colab.research.google.com/drive/190eh2wf83mOckFxQQkg0vw5REohv1X-k?usp=sharing
+
+# Guess the musical style of our Artist
+
+report = """
+
+# Machine Learning Report: Predicting Music Track Popularity
+
+## Introduction
+
+This report details the process of predicting the popularity category of music tracks based on their features, and estimating the genre of an artist based on their streaming data.
+
+## Step-by-Step Process
+
+### Step 1: Load the Datasets
+
+We loaded two datasets: one containing sorted streaming data for 2023 and another containing the top 500 genres by average popularity.
+
+### Step 2: Clean the Data
+
+We cleaned the data to ensure all relevant columns are numeric by removing commas and handling NaN values.
+
+### Step 3: Prepare the Data for Machine Learning
+
+We selected key features for the model and prepared the input (X) and output (y) variables. We also converted categorical labels to numerical values.
+
+### Step 4: Split the Data into Training and Testing Sets
+
+We split the data into training and testing sets using an 80-20 split.
+
+### Step 5: Initialize and Train the Random Forest Classifier
+
+We initialized and trained a Random Forest Classifier on the training data.
+
+### Step 6: Make Predictions on the Test Data
+
+We made predictions on the test data and evaluated the model's performance.
+
+### Step 7: Evaluate the Model
+
+The model achieved an accuracy of 72.77%, and the detailed classification report is provided below:
+
+{classification_report_str}
+
+### Step 8: Analyze the Average Streams by Genre
+
+We calculated the average streams by genre and compared it with the average streams per track for our artist.
+
+### Step 9: Visualize the Comparison
+
+We created a bar chart to visualize the comparison between our artist's average streams and the average streams for selected genres.
+
+## Conclusion
+
+Based on the analysis, the genre that most closely matches your artist's average streams per track is **R&B**. This suggests that your artist's tracks have similar streaming patterns to popular R&B tracks.
+
+## Code
+
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, accuracy_score
+
+# Step 1: Load the datasets
+
+spotify_sorted = pd.read_csv('path_to_your/Spotify_2023_Sorted_by_Streams.csv')
+top_500_genres = pd.read_csv('path_to_your/Top_500_Genres_by_Average_Popularity.csv')
+
+# Step 2: Clean the data
+
+# Identify columns that might contain non-numeric values with commas
+
+columns_to_clean = ['in_spotify_playlists', 'in_spotify_charts', 'in_apple_playlists', 'in_apple_charts',
+'in_deezer_playlists', 'in_deezer_charts', 'in_shazam_charts']
+
+# Clean the columns by ensuring they are strings before removing commas and converting to numeric values
+
+for column in columns_to_clean:
+spotify_sorted[column] = spotify_sorted[column].astype(str).str.replace(',', '').astype(float)
+
+# Step 3: Prepare the data for machine learning
+
+# Select features for the model
+
+features = ['artist_count', 'released_year', 'released_month', 'released_day', 'in_spotify_playlists',
+'in_spotify_charts', 'in_apple_playlists', 'in_apple_charts', 'in_deezer_playlists',
+'in_deezer_charts', 'in_shazam_charts', 'bpm', 'danceability_%', 'valence_%', 'energy_%',
+'acousticness_%', 'instrumentalness_%', 'liveness_%', 'speechiness_%']
+
+# Create the input (X) and output (y) variables
+
+X = spotify_sorted[features]
+y = spotify_sorted['popularity_category']
+
+# Convert categorical labels to numerical values
+
+y = y.map({'Low': 0, 'Medium': 1, 'High': 2, 'Very High': 3})
+
+# Fill NaN values with the median of each column
+
+X = X.fillna(X.median())
+
+# Step 4: Split the data into training and testing sets
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Step 5: Initialize and train the Random Forest Classifier
+
+rf_classifier = RandomForestClassifier(n_estimators=100, random_state=42)
+rf_classifier.fit(X_train, y_train)
+
+# Step 6: Make predictions on the test data
+
+y_pred = rf_classifier.predict(X_test)
+
+# Step 7: Evaluate the model
+
+accuracy = accuracy_score(y_test, y_pred)
+classification_report_str = classification_report(y_test, y_pred)
+
+print("Accuracy:", accuracy)
+print("Classification Report:\\n", classification_report_str)
+
+# Step 8: Analyze the average streams by genre
+
+top_artists = spotify_sorted[['artist(s)_name', 'streams', 'popularity_category']].dropna()
+average_streams_by_genre = top_artists.groupby('artist(s)_name')['streams'].mean().reset_index()
+average_streams_by_genre.columns = ['Genre', 'Average Streams']
+
+# Calculate the average streams for your artist
+
+artist_avg_streams = 103071809 / 8
+
+# Find the closest matching genre based on average streams
+
+average_streams_by_genre['Difference'] = abs(average_streams_by_genre['Average Streams'] - artist_avg_streams)
+closest_genre = average_streams_by_genre.sort_values(by 'Difference').iloc[0]
+
+print("Closest Genre:", closest_genre['Genre'])
+
+# Step 9: Visualize the comparison
+
+specific_genres = ['K-pop', 'R&B', 'dancehall', 'electronic', 'indie pop', 'pop']
+filtered_genres = average_streams_by_genre[average_streams_by_genre['Genre'].isin(specific_genres)]
+
+# Prepare data for visualization
+
+genres_filtered = filtered_genres['Genre']
+average_streams_filtered = filtered_genres['Average Streams']
+artist_streams_filtered = [artist_avg_streams] * len(genres_filtered)
+
+# Create a plot for the filtered genres
+
+plt.figure(figsize=(10, 6))
+plt.barh(genres_filtered, average_streams_filtered, color='skyblue', label='Genre Average Streams')
+plt.plot(artist_streams_filtered, genres_filtered, 'r--', label='Artist Average Streams (12,883,976)')
+
+# Add labels and title
+
+plt.xlabel('Average Streams')
+plt.ylabel('Genres')
+plt.title('Comparison of Artist Average Streams with Selected Genre Average Streams')
+plt.legend()
+
+# Show the plot
+
+plt.tight_layout()
+plt.show()
+
+# Step 11: Analysis of artist’s performance
+
+```
+# Step 11: underperforming vs over performing
+
+if artist_avg_streams < closest_genre['Average Streams']:
+    performance = "underperforming"
+elif artist_avg_streams > closest_genre['Average Streams']:
+    performance = "overperforming"
+else:
+    performance = "performing at par"
+
+print("the average stream for", closest_genre['Genre'], "is", closest_genre['Average Streams'])
+print("Our artist average stream is", artist_avg_streams)
+# Conclusion
+print("Based on the analysis, the artist is", performance, "compared to the average streams for the closest matching genre:", closest_genre['Genre'])
+```
+
+# Conclusion
+
+print("Based on the analysis, the genre that most closely matches your artist's average streams per track is", closest_genre['Genre'])
+
+[Top_500_Genres_by_Average_Popularity.csv](https://prod-files-secure.s3.us-west-2.amazonaws.com/a3af7f01-db3a-42b2-8e8e-b26ab0541aeb/d5c6e9a8-3353-46ee-be0b-2a733747200c/Top_500_Genres_by_Average_Popularity.csv)
+
+[Spotify_2023_Sorted_by_Streams.csv](https://prod-files-secure.s3.us-west-2.amazonaws.com/a3af7f01-db3a-42b2-8e8e-b26ab0541aeb/92d0623e-2d6b-4102-85b4-580bd319a8d8/Spotify_2023_Sorted_by_Streams.csv)
+
+Sources:
+
+https://www.kaggle.com/datasets/nelgiriyewithana/top-spotify-songs-2023
+
+[Most Streamed Spotify Songs 2023 (kaggle.com)](https://www.kaggle.com/datasets/nelgiriyewithana/top-spotify-songs-2023)
+
+Link Notebook Machine Learning
+
+https://colab.research.google.com/drive/1JtYmYDIZruSTEFOkXZL0m22g1pgIzqVi?usp=sharing
+
+Link Presentation 
+
+https://docs.google.com/presentation/d/1aE_zjbm_CXVoANLUsMFsNiCEKMFHtxbK/edit?usp=sharing&ouid=109184533699778360990&rtpof=true&sd=true
+
+SQL code to obtain the continent column (allow to analyse by continents rather than country)
+
+```sql
+SELECT 
+  *,
+  CASE 
+    WHEN country_code IN ('LB', 'KR', 'AE', 'TW', 'BH', 'KW', 'QA', 'RS', 'ID', 'SG', 'MY', 'SA', 'JO', 'JP', 'TH', 'TR', 'CN', 'MN', 'UZ', 'VN', 'NP', 'LK', 'KZ', 'AM', 'BY', 'CY', 'GE', 'MT', 'KG', 'AZ', 'MO', 'TJ', 'KH', 'IR', 'MM', 'BT', 'SY', 'AF', 'PS', 'TL', 'IO', 'YE', 'IO') THEN 'Asia'
+    WHEN country_code IN ('FR', 'GB', 'AT', 'DE', 'HU', 'LT', 'ME', 'NL', 'IT', 'LV', 'DK', 'FI', 'ES', 'NO', 'CZ', 'PT', 'CH', 'MD', 'LU', 'GR', 'SE', 'MC', 'RO', 'SI', 'BA', 'GI', 'IS', 'IE', 'BE', 'BG', 'EE', 'PL', 'RU', 'SK', 'AL', 'XK', 'SM', 'VA', 'JE', 'FO', 'IM', 'AX', 'SJ') THEN 'Europe'
+    WHEN country_code IN ('US', 'MX', 'CA', 'GT', 'CR', 'SV', 'PA', 'DO', 'HN', 'PR', 'TT', 'MQ', 'DM', 'KY', 'NI', 'BZ', 'BS', 'GL', 'AG', 'KN', 'VC', 'AI', 'BB', 'GD', 'MS', 'CU') THEN 'North America'
+    WHEN country_code IN ('BR', 'AR', 'CL', 'CO', 'EC', 'PY', 'UY', 'VE', 'PE', 'GF', 'GY', 'SR') THEN 'South America'
+    WHEN country_code IN ('AU', 'NZ', 'FJ', 'GU', 'AS', 'TO', 'PF', 'NR', 'TV', 'VU', 'UM', 'FM', 'NC', 'MH', 'WS', 'SB', 'TK', 'CX', 'NF', 'CK') THEN 'Oceania'
+    WHEN country_code IN ('ZM', 'TN', 'ZA', 'MA', 'KE', 'NA', 'RE', 'SN', 'MG', 'MU', 'UG', 'LY', 'CG', 'ET', 'MZ', 'AO', 'RW', 'ZW', 'NG', 'TZ', 'BJ', 'CI', 'GH', 'BW', 'LS', 'DJ', 'SD', 'MR', 'SO', 'CD', 'SL', 'TG', 'CV', 'ML', 'ST', 'KM', 'GM', 'ER', 'BI', 'GW', 'GA', 'SS', 'LY', 'EH', 'SC', 'YT') THEN 'Africa'
+    ELSE 'Unknown'
+  END AS continent
+FROM `probable-maker-420409.eddy.master_union_def`
+```
+
+SQl code to rank every track
+
+```sql
+SELECT
+  artist_id,
+  sellable_id,
+  SUM(Total) AS Total,
+  RANK() OVER (PARTITION BY artist_id ORDER BY SUM(Total) DESC) AS rank
+FROM `probable-maker-420409.eddy.master_union_def`
+WHERE sellable_type = "Track"
+GROUP BY
+  artist_id, sellable_id
+ORDER BY
+  artist_id, rank;
+```
+
+Quantity Correlation between payments and streaming 
+
+After importing the new tables (with 3 artists) we learn that we need artist_id as a string for the filters in metabase to work.
+
+https://www.loom.com/share/d890f04f22514551b5cb99d0313c3380?sid=d222bf3a-2708-48ce-a69c-c2a041abacca
+
+To calculate the **ROI** (Return On Investment) we need to join to tables and group by one one table by the column year_month
+
+```sql
+WITH total_22171 AS ( #subquery to group by year_month
+SELECT
+year_month,
+SUM(total) AS total
+FROM `probable-maker-420409.eddy.22171`
+GROUP BY year_month)
+
+SELECT #query to join the result from above with this table
+marketing.date,
+marketing.marketing_spend_usd,
+marketing.the_album_project,
+marketing.year_month,
+total_22171.total
+FROM `probable-maker-420409.eddy.22171_marketing_usd` AS marketing
+JOIN total_22171
+ON total_22171.year_month = marketing.year_month
+```
+
+Now with this table we can calculate the ROI directely on metabase to have a scorecaard of our ROI for artist 22171 with the formula below :
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/a3af7f01-db3a-42b2-8e8e-b26ab0541aeb/ef0099a7-0100-4ac9-a7a3-022d462cee1b/Untitled.png)
+
+In metabase, the formula for ROI look like this : 
+
+```
+= (Sum([total]) - Sum([marketing_spend_usd])) / Sum([marketing_spend_usd])
+```
+
+ 
+
+All Costs 22171
+
+Table 22171_master_cost
+
+```sql
+WITH subquery AS (
+    SELECT
+        SUM(expenses) AS overallexpenses
+    FROM 
+        `probable-maker-420409.eddy.cost _artist_22171`
+)
+SELECT 
+    categories,
+    ROUND(SUM(expenses),2) AS totalexpenses,
+    ROUND((SUM(expenses) / subquery.overallexpenses),4) * 100 AS percentbudget
+FROM 
+    `probable-maker-420409.eddy.cost _artist_22171`,
+    subquery
+GROUP BY 
+    categories, subquery.overallexpenses
+    ORDER BY percentbudget DESC
+
+```
+
+WITH subquery AS (
+SELECT
+*,
+CONCAT('ALB22171PROJ1-', GENERATE_UUID()) AS the_album_project  # Adding a specific value concatenated with a unique code for each row
+FROM
+`probable-maker-420409.eddy.22171_master_cost`
+)
+
+SELECT *
+FROM
+subquery
+
+```
+  SELECT
+  categories
+  ,totalexpenses
+  ,percentbudget
+  ,LEFT(the_album_project,13) as the_album_project
+FROM `probable-maker-420409.eddy.datadata22171` 
+```
+
+Python Script for ROI 22171
+
+https://colab.research.google.com/drive/15NtHdKBb42I_vY8YOTkiL-hM9rl9yLM2?usp=sharing
+
+import pandas as pd
+
+# Load the data
+
+file_path = '/content/bquxjob_2b5784a7_190018598cc.csv'
+data = pd.read_csv(file_path)
+
+# Renaming columns for easier access
+
+data.columns = ['categories', 'totalexpenses', 'percentbudget','the_album_project']
+
+# Function to remove commas and handle non-numeric values for conversion
+
+def clean_numeric_column(column):
+column_cleaned = column.replace({',': ''}, regex=True)
+column_cleaned = pd.to_numeric(column_cleaned, errors='coerce')
+return column_cleaned
+
+# Clean the numeric columns
+
+data['totalexpenses'] = clean_numeric_column(data['totalexpenses'])
+
+# Calculate Overall Budget as the sum of all category values
+
+overall_budget = data['totalexpenses'].sum()
+
+# Calculate Percentage as the value of each category divided by the total Overall Budget times 100
+
+data['percentbudget'] = (data['totalexpenses'] / overall_budget) * 100
+
+# Define a function to check if any category exceeds its percentage limit
+
+def check_percentage_rule(data, overall_budget):
+data['Exceeded'] = (data['totalexpenses'] / overall_budget * 100) > data['percentbudget']
+return data
+
+# Define a function to calculate ROI
+
+def calculate_roi(data, sales):
+total_cost = data['totalexpenses'].sum()
+net_profit = sales - total_cost
+roi = (net_profit / total_cost) * 100 if total_cost != 0 else 0
+return roi
+
+# Function to update monthly data (SUM values)
+
+def update_monthly_data(data, category, new_value):
+data.loc[data['categories'] == category, 'totalexpenses'] = new_value
+
+```
+# Recalculate Overall Budget and Percentage after updating
+overall_budget = data['totalexpenses'].sum()
+data['percentbudget'] = (data['totalexpenses'] / overall_budget) * 100
+
+return data, overall_budget
+
+```
+
+# Initial Overall Budget
+
+overall_budget = data['totalexpenses'].sum()
+
+# Initial check percentage rule
+
+data = check_percentage_rule(data, overall_budget)
+
+# Initial ROI calculation with example sales value
+
+initial_sales = 380000  # Example sales value
+roi = calculate_roi(data, initial_sales)
+
+# Display the data and ROI
+
+print("Data with Percentage Check:")
+print(data)
+print(f"\nCalculated ROI: {roi:.2f}%")
+
+# Example usage of the update function
+
+# Update the value of the category '{marketing}' to 2,000,000
+
+data, overall_budget = update_monthly_data(data, '{marketing}', 2000000)
+
+# New sales value for ROI calculation
+
+new_sales = 380000  # Updated example sales value
+
+# Verify the changes and recalculate ROI
+
+data = check_percentage_rule(data, overall_budget)
+new_roi = calculate_roi(data, new_sales)
+
+# Display the updated data and new ROI
+
+print("\nUpdated Data with Percentage Check:")
+print(f"\nNew Calculated ROI: {new_roi:.2f}%")
+data
+
+with this CSV
+
+[bquxjob_2b5784a7_190018598cc.csv](https://prod-files-secure.s3.us-west-2.amazonaws.com/a3af7f01-db3a-42b2-8e8e-b26ab0541aeb/696329b3-f56b-49e0-b9b2-c215321a8c36/bquxjob_2b5784a7_190018598cc.csv)
+
+**New Machine Learning**
+
+**Recommendations for a hit** 
+
+https://colab.research.google.com/drive/1WTr6wlH14x8iZHBJA1TPeVqz2xg4-cam?usp=sharing

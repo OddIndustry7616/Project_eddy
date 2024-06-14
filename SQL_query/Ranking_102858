@@ -1,0 +1,11 @@
+ #ranking by total generated
+SELECT
+  artist_id,
+  sellable_id,
+  SUM(Total) AS Total,
+  RANK() OVER (ORDER BY SUM(Total) DESC) AS rank
+FROM `probable-maker-420409.eddy.master_union_def`
+GROUP BY
+  artist_id, sellable_id
+ORDER BY
+  rank;

@@ -1,0 +1,22 @@
+WITH subquery AS (
+  SELECT 
+    *
+  FROM 
+    `probable-maker-420409.eddy.master148199`
+  WHERE 
+    country_code != '15419/world'
+)
+
+SELECT 
+  artist_id,
+  id,
+  country_code,
+  channel_slug,
+  retailer,
+  sellable_type,
+  sellable_id,
+  period_start_at AS period,
+  net_received_amount AS total,
+  FORMAT_TIMESTAMP('%Y-%m',period_start_at) as year_month
+FROM 
+  subquery

@@ -1,0 +1,9 @@
+SELECT * ,
+  CASE 
+    WHEN artist_id = 22171 THEN 'ALB22171PROJ1'
+    WHEN artist_id = 148199 THEN 'ALB148199PROJ2'
+    WHEN artist_id = 102858 THEN 'ALB102858PROJ3'
+    ELSE 'UNKNOWN'
+  END AS the_album_project
+FROM
+`probable-maker-420409.eddy.master_union_3_artists` 

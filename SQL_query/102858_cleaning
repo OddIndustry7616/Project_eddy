@@ -1,0 +1,11 @@
+SELECT artist_id,
+id,
+country_code,
+channel_slug,
+retailer,
+sellable_type,
+sellable_id,
+period,
+total,
+FORMAT_TIMESTAMP('%Y-%m',period) as year_month
+FROM `probable-maker-420409.eddy.master1`

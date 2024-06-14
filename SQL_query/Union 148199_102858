@@ -1,0 +1,6 @@
+SELECT *
+FROM `probable-maker-420409.eddy.102858`
+
+UNION ALL
+SELECT *
+FROM `probable-maker-420409.eddy.148199`

@@ -1,0 +1,24 @@
+WITH subquery AS (
+  SELECT 
+    *,
+    GENERATE_UUID() AS the_album_project  # Adding a unique code for each row
+  FROM 
+    `probable-maker-420409.eddy.sample_data` 
+  WHERE 
+    country_code IS NOT NULL 
+)
+
+SELECT 
+  artist_id,
+  sale_id AS id,
+  country_code,
+  channel_slug,
+  retailer,
+  sellable_type,
+  sellable_id,
+  period_start_at AS period,
+  net_received_amount AS Total,
+  FORMAT_TIMESTAMP('%Y-%m', period_start_at) AS year_month,
+  the_album_project  # Including the new unique code column
+FROM 
+  subquery
